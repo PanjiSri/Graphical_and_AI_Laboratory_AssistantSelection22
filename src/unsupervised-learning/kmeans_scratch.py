@@ -24,7 +24,8 @@ class KMeansScratch:
     def compute_centroids(self, X, labels):
         centroids = np.zeros((self.n_clusters, X.shape[1]))
         for i in range(self.n_clusters):
-            centroids[i] = X[labels == i].mean(axis=0)
+            if np.any(labels == i):
+                centroids[i] = X[labels == i].mean(axis=0)
         return centroids
 
     def fit(self, X):
@@ -44,3 +45,7 @@ class KMeansScratch:
     def predict(self, X):
         distances = self.compute_distances(X, self.centroids)
         return self.assign_clusters(distances)
+
+    def fit_predict(self, X):
+        labels = self.fit(X)
+        return labels
