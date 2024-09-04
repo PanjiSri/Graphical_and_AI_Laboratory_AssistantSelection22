@@ -99,7 +99,7 @@ class LogisticRegressionScratch:
             self.cost_history.append(cost)
             
             if (i + 1) % 100 == 0 or i == 0:
-                print(f"Iterasi {i+1}/{self.num_iterations}: Biaya = {cost:.4f}")
+                print(f"Iterasi {i+1}/{self.num_iterations}: Cost = {cost:.4f}")
         
     def predict(self, X_test):
         z = np.dot(X_test, self.w) + self.b
