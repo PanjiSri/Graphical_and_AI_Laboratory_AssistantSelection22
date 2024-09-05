@@ -5,7 +5,7 @@ class Layer:
         self.input_size = input_size
         self.output_size = output_size
         self.activation = activation
-        self.weights = np.random.randn(input_size, output_size) * np.sqrt(2. / input_size)  # He initialization for ReLU
+        self.weights = np.random.randn(input_size, output_size) * np.sqrt(2. / input_size)
         self.biases = np.zeros((1, output_size))
         self.input = None
         self.output = None
@@ -26,7 +26,6 @@ class Layer:
         weights_gradient = np.dot(self.input.T, activation_gradient) / batch_size
         biases_gradient = np.sum(activation_gradient, axis=0, keepdims=True) / batch_size
         
-        # Apply regularization if specified
         if self.regularization == 'l1':
             weights_gradient += self.reg_lambda * np.sign(self.weights) / batch_size
         elif self.regularization == 'l2':
@@ -48,7 +47,7 @@ class Layer:
             exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
             return exp_x / np.sum(exp_x, axis=1, keepdims=True)
         else:
-            raise ValueError(f"Unsupported activation function: {self.activation}")
+            raise ValueError(f"Fungsi aktivasi tidak didukung: {self.activation}")
 
     def apply_activation_derivative(self, x):
         if self.activation == 'sigmoid':
@@ -59,7 +58,7 @@ class Layer:
         elif self.activation == 'linear':
             return np.ones_like(x)
         else:
-            raise ValueError(f"Unsupported activation function: {self.activation}")
+            raise ValueError(f"Fungsi aktivasi tidak didukung: {self.activation}")
 
 class ANN_Scratch:
     def __init__(self, layer_sizes, activations, loss='mse', regularization=None, reg_lambda=0.01, learning_rate=0.01, epochs=1000, batch_size=32):
@@ -95,9 +94,9 @@ class ANN_Scratch:
                 y_batch = y[i:i+self.batch_size]
                 self.backward(X_batch, y_batch)
             
-            if epoch % 100 == 0:
+            if epoch % 1 == 0: 
                 loss = self.calculate_loss(X, y)
-                print(f"Epoch {epoch}, Loss: {loss}")
+                print(f"Epoch {epoch+1}, Loss: {loss}")  
 
     def predict(self, X):
         return self.forward(X)
@@ -110,7 +109,7 @@ class ANN_Scratch:
             output = np.clip(output, 1e-15, 1 - 1e-15)
             loss = -np.mean(y * np.log(output) + (1 - y) * np.log(1 - output))
         else:
-            raise ValueError(f"Unsupported loss function: {self.loss}")
+            raise ValueError(f"Fungsi loss tidak didukung: {self.loss}")
         
         if self.regularization == 'l1':
             l1_loss = self.reg_lambda * sum(np.sum(np.abs(layer.weights)) for layer in self.layers)
@@ -128,4 +127,4 @@ class ANN_Scratch:
             output = np.clip(output, 1e-15, 1 - 1e-15)
             return (output - y) / (output * (1 - output))
         else:
-            raise ValueError(f"Unsupported loss function: {self.loss}")
+            raise ValueError(f"Fungsi loss tidak didukung: {self.loss}")

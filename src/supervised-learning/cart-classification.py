@@ -14,21 +14,25 @@ class CARTScratch:
     def grow_tree(self, X, y, depth=0):
         n_samples, n_features = X.shape
         print(f"Menumbuhkan pohon pada depth {depth} dengan {n_samples} sampel...")
+        
         if n_samples >= self.min_samples and depth < self.max_height:
             best_split = self.find_split(X, y, n_features)
-            if best_split['gain'] > 0:
+            
+            # Jika split ditemukan dengan gain positif
+            if best_split and best_split['gain'] > 0:
                 print(f"Pembagian terbaik ditemukan di fitur {best_split['feature']} dengan threshold {best_split['threshold']}.")
                 left_subtree = self.grow_tree(best_split['X_left'], best_split['y_left'], depth + 1)
                 right_subtree = self.grow_tree(best_split['X_right'], best_split['y_right'], depth + 1)
                 return TreeNode(best_split['feature'], best_split['threshold'], 
                                 left_subtree, right_subtree, gain=best_split['gain'])
         
-        leaf_value = self.determine_leaf_value(y)
+        # Node daun jika kondisi tidak terpenuhi
+        leaf_value =self.determine_leaf_value(y)
         print(f"Leaf node terbentuk dengan nilai {leaf_value}.")
         return TreeNode(value=leaf_value)
     
     def find_split(self, X, y, n_features):
-        best_split = {}
+        best_split = None
         max_gain = -float("inf")
         
         for feature_index in range(n_features):
@@ -36,6 +40,8 @@ class CARTScratch:
             possible_thresholds = np.unique(feature_values)
             for threshold in possible_thresholds:
                 X_left, y_left, X_right, y_right = self.partition(X, y, feature_index, threshold)
+                
+                # Jika ada sampel di setiap sisi split
                 if len(y_left) > 0 and len(y_right) > 0:
                     gain = self.calculate_gain(y, y_left, y_right)
                     if gain > max_gain:
@@ -65,17 +71,19 @@ class CARTScratch:
     
     def calculate_gini(self, y):
         unique_classes = np.unique(y)
-        gini_index = 0
+        gini_index = 1.0
         for cls in unique_classes:
             p_cls = len(y[y == cls]) / len(y)
-            gini_index += p_cls ** 2
-        return 1 - gini_index
+            gini_index -= p_cls ** 2
+        return gini_index
     
     def determine_leaf_value(self, y):
         leaf_value = np.bincount(y).argmax()
         return leaf_value
     
     def predict(self, X):
+        if self.tree is None:
+            raise ValueError("Model belum fit dengan data! Silakan fit model terlebih dahulu.")
         print("Mulai prediksi...")
         predictions = [self.make_prediction(inputs) for inputs in X]
         print("Prediksi selesai.")

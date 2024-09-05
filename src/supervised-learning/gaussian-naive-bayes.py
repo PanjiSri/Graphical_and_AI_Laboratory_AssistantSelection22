@@ -21,6 +21,8 @@ class GaussianNaiveBayes:
             X_c = X[y == c]
             self.mean[idx, :] = X_c.mean(axis=0)
             self.var[idx, :] = X_c.var(axis=0)
+            # menghindari varian nol
+            self.var[idx, :] = np.where(self.var[idx, :] == 0, 1e-6, self.var[idx, :])  
             self.priors[idx] = X_c.shape[0] / float(n_samples)
             print(f"Memproses kelas {c}: mean={self.mean[idx, :]}, var={self.var[idx, :]}")
 
@@ -36,8 +38,9 @@ class GaussianNaiveBayes:
     def _calculate_posterior(self, x):
         posteriors = []
         for idx, _ in enumerate(self.classes):
-            prior = np.log(self.priors[idx])
-            class_likelihood = np.sum(np.log(self._calculate_likelihood(idx, x)))
+            # menghindari log(0)
+            prior = np.log(self.priors[idx] + 1e-9)  
+            class_likelihood = np.sum(np.log(self._calculate_likelihood(idx, x) + 1e-9))
             posterior = prior + class_likelihood
             posteriors.append(posterior)
         print(f"Menghitung posterior: {posteriors}")

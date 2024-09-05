@@ -1,53 +1,78 @@
 import numpy as np
 
-class GaussianNaiveBayes:
-    def __init__(self):
-        self.classes = None
-        self.mean = None
-        self.var = None
-        self.priors = None
+class SVM_Scratch:
+    def __init__(self, learning_rate=0.00001, num_iterations=1000, lambda_param=0.01, kernel='linear', degree=3, gamma=0.1):
+        self.learning_rate = learning_rate
+        self.num_iterations = num_iterations
+        self.lambda_param = lambda_param
+        self.kernel = kernel
+        self.degree = degree
+        self.gamma = gamma
+        self.w = None
+        self.b = None
+        self.X_train = None
 
-    def fit(self, X, y):
-        print("Memulai proses fit...")
-        n_samples, n_features = X.shape
-        self.classes = np.unique(y)
-        n_classes = len(self.classes)
+    def linear_kernel(self, X, X2):
+        return np.dot(X, X2.T)
+    
+    def polynomial_kernel(self, X, X2):
+        return np.power((1 + np.dot(X, X2.T)), self.degree)
+    
+    def rbf_kernel(self, X, X2):
+        if self.gamma is None:
+            self.gamma = 1 / X.shape[1]
+        K = np.exp(-self.gamma * np.linalg.norm(X[:, np.newaxis] - X2, axis=2) ** 2)
+        return K
 
-        self.mean = np.zeros((n_classes, n_features), dtype=np.float64)
-        self.var = np.zeros((n_classes, n_features), dtype=np.float64)
-        self.priors = np.zeros(n_classes, dtype=np.float64)
+    def compute_kernel(self, X, X2):
+        if self.kernel == 'linear':
+            return self.linear_kernel(X, X2)
+        elif self.kernel == 'polynomial':
+            return self.polynomial_kernel(X, X2)
+        elif self.kernel == 'rbf':
+            return self.rbf_kernel(X, X2)
+        else:
+            raise ValueError("Kernel tidak diketahui")
 
-        for idx, c in enumerate(self.classes):
-            X_c = X[y == c]
-            self.mean[idx, :] = X_c.mean(axis=0)
-            self.var[idx, :] = X_c.var(axis=0)
-            # menghindari varian nol
-            self.var[idx, :] = np.where(self.var[idx, :] == 0, 1e-6, self.var[idx, :])  
-            self.priors[idx] = X_c.shape[0] / float(n_samples)
-            print(f"Memproses kelas {c}: mean={self.mean[idx, :]}, var={self.var[idx, :]}")
+    def fit(self, X_train, y_train):
+        self.X_train = X_train 
+        y_train = np.where(y_train <= 0, -1, 1)
+        m, n = X_train.shape
+        self.w = np.zeros(m) 
+        self.b = 0
 
-        print("Proses fit selesai.")
+        # print(f"[DEBUG] Mulai fit: X_train.shape={X_train.shape}, y_train.shape={y_train.shape}")
+        # print(f"[DEBUG] Kernel yang dipilih: {self.kernel}")
 
-    def _calculate_likelihood(self, class_idx, x):
-        mean = self.mean[class_idx]
-        var = self.var[class_idx]
-        numerator = np.exp(- (x - mean) ** 2 / (2 * var))
-        denominator = np.sqrt(2 * np.pi * var)
-        return numerator / denominator
+        # Menggunakan kernel pada pelatihan
+        K = self.compute_kernel(X_train, X_train)
+        # print(f"[DEBUG] Kernel matrix K.shape={K.shape}")
 
-    def _calculate_posterior(self, x):
-        posteriors = []
-        for idx, _ in enumerate(self.classes):
-            # menghindari log(0)
-            prior = np.log(self.priors[idx] + 1e-9)  
-            class_likelihood = np.sum(np.log(self._calculate_likelihood(idx, x) + 1e-9))
-            posterior = prior + class_likelihood
-            posteriors.append(posterior)
-        print(f"Menghitung posterior: {posteriors}")
-        return self.classes[np.argmax(posteriors)]
+        for i in range(self.num_iterations):
+            for idx in range(m):
+                condition = y_train[idx] * (np.dot(K[idx], self.w) - self.b) >= 1
+                if condition:
+                    self.w -= self.learning_rate * (2 * self.lambda_param * self.w)
+                else:
+                    self.w -= self.learning_rate * (2 * self.lambda_param * self.w - np.dot(K[idx], y_train[idx]))
+                    self.b -= self.learning_rate * y_train[idx]
+            
+            if i % 50 == 0:
+                loss = self._calculate_loss(K, y_train)
+                print(f"[DEBUG] Iterasi {i}: Loss = {loss}, w.shape={self.w.shape}, b={self.b}")
+    
+    def _calculate_loss(self, K, y):
+        hinge_loss = np.maximum(0, 1 - y * (np.dot(K, self.w) - self.b))
+        loss = 0.5 * np.dot(self.w, self.w) + self.lambda_param * np.sum(hinge_loss)
+        # print(f"[DEBUG] Calculated loss: {loss}")
+        return loss
 
-    def predict(self, X):
-        print("Memulai proses prediksi...")
-        predictions = np.array([self._calculate_posterior(x) for x in X])
-        print("Proses prediksi selesai.")
-        return predictions
+    def predict(self, X_test):
+        # Menggunakan kernel antara X_test dan self.X_train
+        K = self.compute_kernel(X_test, self.X_train)
+        # print(f"[DEBUG] Predict: X_test.shape={X_test.shape}, Kernel K.shape={K.shape}")
+
+        approx = np.dot(K, self.w) - self.b
+        # print(f"[DEBUG] Predict: approx.shape={approx.shape}, w.shape={self.w.shape}, b={self.b}")
+
+        return np.where(np.sign(approx) == -1, 0, 1)

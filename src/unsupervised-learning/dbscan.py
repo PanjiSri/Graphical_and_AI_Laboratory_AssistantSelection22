@@ -1,10 +1,11 @@
 import numpy as np
 
 class DBSCANScratch:
-    def __init__(self, eps=0.5, min_samples=5, metric='euclidean'):
+    def __init__(self, eps=0.5, min_samples=5, metric='euclidean', p=3):
         self.eps = eps
         self.min_samples = min_samples
         self.metric = metric
+        self.p = p 
         self.labels_ = None
 
     def compute_distance(self, point1, point2):
@@ -13,8 +14,7 @@ class DBSCANScratch:
         elif self.metric == 'manhattan':
             return np.sum(np.abs(point1 - point2))
         elif self.metric == 'minkowski':
-            p = 3 
-            return np.sum(np.abs(point1 - point2) ** p) ** (1/p)
+            return np.sum(np.abs(point1 - point2) ** self.p) ** (1/self.p)
         else:
             raise ValueError(f"Metrik {self.metric} tidak diketahui")
 
@@ -45,12 +45,12 @@ class DBSCANScratch:
         cluster_id = 0
         
         for i in range(n_samples):
-            if labels[i] != 0:  # Already processed
+            if labels[i] != 0:  
                 continue
             
             neighbors = self.region_query(X, i)
             if len(neighbors) < self.min_samples:
-                labels[i] = -1  # Mark as noise
+                labels[i] = -1  
             else:
                 cluster_id += 1
                 self.expand_cluster(X, labels, i, neighbors, cluster_id)

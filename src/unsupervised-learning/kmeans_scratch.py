@@ -1,16 +1,40 @@
 import numpy as np
 
 class KMeansScratch:
-    def __init__(self, n_clusters=3, max_iter=300):
+    def __init__(self, n_clusters=3, max_iter=300, init_method='random'):
         self.n_clusters = n_clusters
         self.max_iter = max_iter
+        self.init_method = init_method
         self.centroids = None
 
     def initialize_centroids(self, X):
-        np.random.seed(42)
-        random_indices = np.random.permutation(X.shape[0])
-        centroids = X[random_indices[:self.n_clusters]]
+        if self.init_method == 'random':
+            np.random.seed(42)
+            random_indices = np.random.permutation(X.shape[0])
+            centroids = X[random_indices[:self.n_clusters]]
+        elif self.init_method == 'kmeans++':
+            centroids = self.kmeans_plus_plus_init(X)
+        else:
+            raise ValueError("Metode inisialisasi tidak dikenal. Gunakan 'random' atau 'kmeans++'.")
         return centroids
+
+    def kmeans_plus_plus_init(self, X):
+        np.random.seed(42)
+        centroids = []
+        centroids.append(X[np.random.randint(X.shape[0])])
+
+        for _ in range(1, self.n_clusters):
+            distances = np.array([min(np.linalg.norm(x - c) ** 2 for c in centroids) for x in X])
+            probs = distances / distances.sum()
+            cumulative_probs = np.cumsum(probs)
+            r = np.random.rand()
+
+            for j, p in enumerate(cumulative_probs):
+                if r < p:
+                    centroids.append(X[j])
+                    break
+
+        return np.array(centroids)
 
     def compute_distances(self, X, centroids):
         distances = np.zeros((X.shape[0], self.n_clusters))
